@@ -49,12 +49,17 @@ class Magic123(BaseLift3DSystem):
             **batch["random_camera"],
             rgb_as_latents=False,
         )
+        print(batch["random_camera"])
+        for key in out.keys():
+            print(f'Key {key}: Shape {out[key].shape}')
         guidance_3d_out = self.guidance_3d(
             out["comp_rgb"],
             **batch["random_camera"],
             rgb_as_latents=False,
         )
-
+        for name, value in guidance_3d_out.items():
+            print(f'Output key {name}: Content: {value}')
+        raise ValueError
         loss = 0.0
 
         loss_rgb = F.mse_loss(

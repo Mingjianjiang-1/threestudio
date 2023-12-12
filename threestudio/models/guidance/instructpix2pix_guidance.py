@@ -41,7 +41,7 @@ class InstructPix2PixGuidance(BaseObject):
 
         diffusion_steps: int = 20
 
-        use_sds: bool = False
+        use_sds: bool = True
 
     cfg: Config
 
@@ -289,11 +289,18 @@ class InstructPix2PixGuidance(BaseObject):
                 grad = grad.clamp(-self.grad_clip_val, self.grad_clip_val)
             target = (latents - grad).detach()
             loss_sds = 0.5 * F.mse_loss(latents, target, reduction="sum") / batch_size
+
+            edit_latents = self.edit_latents(text_embeddings, latents, cond_latents, t)
+            edit_images = self.decode_latents(edit_latents)
+            edit_images = F.interpolate(edit_images, (H, W), mode="bilinear")
+
+
             return {
                 "loss_sds": loss_sds,
                 "grad_norm": grad.norm(),
                 "min_step": self.min_step,
                 "max_step": self.max_step,
+                "edit_images": edit_images.permute(0, 2, 3, 1)
             }
         else:
             edit_latents = self.edit_latents(text_embeddings, latents, cond_latents, t)

@@ -53,33 +53,35 @@ class Instructnerf2nerf(BaseLift3DSystem):
                 gt_rgb.permute(0, 3, 1, 2), (H, W), mode="bilinear", align_corners=False
             ).permute(0, 2, 3, 1)
             batch["gt_rgb"] = gt_rgb
-        else:
+        else: 
             gt_rgb = origin_gt_rgb
+            
         out = self(batch)
+        sds_loss = 0.0
         if (
             self.cfg.per_editing_step > 0
             and self.global_step > self.cfg.start_editing_step
         ):
             prompt_utils = self.prompt_processor()
             if (
-                not batch_index in self.edit_frames
-                or self.global_step % self.cfg.per_editing_step == 0
+                # 1
+                #not batch_index in self.edit_frames
+                self.global_step % self.cfg.per_editing_step == 0
             ):
                 self.renderer.eval()
                 full_out = self(batch)
                 self.renderer.train()
-                result = self.guidance(
-                    full_out["comp_rgb"], origin_gt_rgb, prompt_utils
+                result = self.guidance(   ##apply instruct pix to pix
+                    full_out["comp_rgb"], origin_gt_rgb, prompt_utils   
                 )
-                self.edit_frames[batch_index] = result["edit_images"].detach().cpu()
-
+                print(result)
+                #self.edit_frames[batch_index] = result["edit_images"].detach().cpu()
+                sds_loss = result["loss_sds"]
+                print(sds_loss)
+        #loss = torch.cat(sds_loss, dim=1).mean()
         loss = 0.0
         guidance_out = {
-            "loss_l1": torch.nn.functional.l1_loss(out["comp_rgb"], gt_rgb),
-            "loss_p": self.perceptual_loss(
-                out["comp_rgb"].permute(0, 3, 1, 2).contiguous(),
-                gt_rgb.permute(0, 3, 1, 2).contiguous(),
-            ).sum(),
+            "loss_sds":  sds_loss
         }
 
         for name, value in guidance_out.items():
@@ -107,9 +109,9 @@ class Instructnerf2nerf(BaseLift3DSystem):
         loss_opaque = binary_cross_entropy(opacity_clamped, opacity_clamped)
         self.log("train/loss_opaque", loss_opaque)
         loss += loss_opaque * self.C(self.cfg.loss.lambda_opaque)
-
-        for name, value in self.cfg.loss.items():
-            self.log(f"train_params/{name}", self.C(value))
+    
+        # for name, value in self.cfg.loss.items():
+        #     self.log(f"train_params/{name}", self.C(value))
 
         return {"loss": loss}
 

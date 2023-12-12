@@ -5,6 +5,7 @@ from bisect import bisect_right
 import torch
 import torch.nn as nn
 from torch.optim import lr_scheduler
+import numpy as np
 
 import threestudio
 
@@ -102,3 +103,35 @@ def parse_scheduler(config, optimizer):
             "interval": interval,
         }
     return scheduler
+
+def convert_c2w_to_hp(c2w_tensor):
+    # Calculating the camera distance, azimuth, and elevation using the tensor
+    # Camera position (distance)
+    camera_position_tensor = c2w_tensor[:3, 3]
+    distance_tensor = torch.norm(camera_position_tensor)
+
+    # Forward vector (negative of third column for right-handed coordinate system)
+    forward_vector_tensor = -c2w_tensor[:3, 2]
+
+    # Normalize the forward vector
+    forward_vector_normalized_tensor = forward_vector_tensor / torch.norm(forward_vector_tensor)
+    x, y, z = forward_vector_normalized_tensor[0], forward_vector_normalized_tensor[1], forward_vector_normalized_tensor[2]
+    x_, y_, z_ = -x, -z, -y
+
+    # Compute Elevation (Pitch)
+    elevation_tensor = torch.atan2(y_, torch.sqrt(x_**2 + z_**2))
+
+    # Compute Azimuth (Yaw)
+    azimuth_tensor = torch.atan2(z_, x_)
+
+    # distance_tensor, torch.degrees(elevation_tensor), torch.degrees(azimuth_tensor)
+    radians_to_degrees = 180.0 / np.pi
+
+    # Convert elevation and azimuth from radians to degrees
+    elevation_degrees = elevation_tensor * radians_to_degrees
+    azimuth_degrees = azimuth_tensor * radians_to_degrees
+
+    return {'azimuth': azimuth_degrees.item(), 
+            'elevation': elevation_degrees.item(),
+            'camera_distance': distance_tensor.item()
+        }

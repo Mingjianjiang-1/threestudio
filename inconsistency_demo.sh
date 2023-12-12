@@ -1,0 +1,3 @@
+# python3 launch.py --config configs/instructnerf2nerf_right.yaml --train --gpu 0 data.dataroot="data/face2" data.camera_layout="front" data.camera_distance=1 data.eval_interpolation=[1,10,50] system.prompt_processor.prompt="Give him a checkered jacket"
+
+python3 launch.py --config configs/instructnerf2nerf_right.yaml --train --gpu 0 data.dataroot="data/fangzhou-small/" data.camera_layout="front" data.camera_distance=1 data.eval_interpolation=[1,10,50] system.prompt_processor.prompt="Turn him to Albert Einstein"

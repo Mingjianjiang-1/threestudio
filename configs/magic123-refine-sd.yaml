@@ -62,7 +62,7 @@ system:
 
   renderer_type: "nvdiff-rasterizer"
   renderer:
-    context_type: gl
+    context_type: cuda
 
   guidance_3d_type: "zero123-unified-guidance"
   guidance_3d:
